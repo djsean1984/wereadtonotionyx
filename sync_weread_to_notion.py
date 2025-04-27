@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from notion_client import Client
 
-# 配置信息
 CONFIG = {
     "WEREAD_COOKIE": os.getenv("WEREAD_COOKIE"),
     "NOTION_TOKEN": os.getenv("NOTION_TOKEN"),
@@ -21,7 +20,6 @@ def get_weread_highlights():
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        
         books = data.get("books", [])
         highlights = []
         
@@ -29,7 +27,6 @@ def get_weread_highlights():
             book_id = book["bookId"]
             title = book["title"]
             author = book["author"]
-            
             notes_url = f"https://i.weread.qq.com/book/bookmarklist?bookId={book_id}"
             notes_response = requests.get(notes_url, headers=headers)
             notes_data = notes_response.json()
@@ -45,11 +42,10 @@ def get_weread_highlights():
                         "create_time": datetime.fromtimestamp(mark.get("createTime", 0)).strftime("%Y-%m-%d %H:%M:%S"),
                         "range": mark.get("range", "")
                     })
-        
         return highlights
     
     except Exception as e:
-        print(f"Error getting WeRead highlights: {str(e)}")
+        print(f"Error getting highlights: {str(e)}")
         return []
 
 def sync_to_notion(highlights):
@@ -64,10 +60,13 @@ def sync_to_notion(highlights):
                 ]
             }
         }
-        existing = notion.databases.query(database_id=CONFIG["NOTION_DATABASE_ID"], **query).get("results", [])
+        existing = notion.databases.query(
+            database_id=CONFIG["NOTION_DATABASE_ID"], 
+            **query
+        ).get("results", [])
         
         if existing:
-            print(f"Note already exists: {highlight['book_title']} - {highlight['chapter']}")
+            print(f"Skipped existing: {highlight['book_title']}")
             continue
         
         new_page = {
@@ -85,16 +84,16 @@ def sync_to_notion(highlights):
         
         try:
             notion.pages.create(**new_page)
-            print(f"Added note: {highlight['book_title']} - {highlight['chapter']}")
+            print(f"Added: {highlight['book_title']} - {highlight['chapter']}")
         except Exception as e:
-            print(f"Error adding to Notion: {str(e)}")
+            print(f"Notion error: {str(e)}")
 
 def main():
-    print("Starting WeRead to Notion sync...")
+    print("Starting sync...")
     highlights = get_weread_highlights()
     if highlights:
         sync_to_notion(highlights)
-    print(f"Sync completed. Processed {len(highlights)} notes")
+    print(f"Done. Processed {len(highlights)} notes")
 
 if __name__ == "__main__":
     main()
