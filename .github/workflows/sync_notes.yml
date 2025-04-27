@@ -2,8 +2,8 @@ name: Sync WeRead to Notion
 
 on:
   schedule:
-    - cron: '0 19 * * *'  # 每天UTC时间19:00（北京时间第二天3:00）运行
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 19 * * *'
+  workflow_dispatch:
 
 jobs:
   sync:
