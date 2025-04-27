@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Debug Environment
+        run: |
+          echo "WR_SKEY exists: ${{ secrets.WR_SKEY != '' }}"
+          echo "WR_VID exists: ${{ secrets.WR_VID != '' }}"
+      
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
