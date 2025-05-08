@@ -33,4 +33,4 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }} # 从 GitHub Secrets 获取 Notion Database ID
 
       - name: Run WeRead sync script
-        run: python your_script_name.py  # 替换为你的脚本文件名
+        run: python sync_notes.yml  # 替换为你的脚本文件名
