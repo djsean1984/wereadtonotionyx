@@ -2,15 +2,24 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from notion_client import Client
 
 load_dotenv()
 
 # 从环境变量或配置文件中获取 Cookie
 COOKIE = os.getenv("WEREAD_COOKIE")
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
-# 确保 Cookie 存在
+# 确保 Cookie, Notion Token 和 Database ID 存在
 if not COOKIE:
     print("请设置 WEREAD_COOKIE 环境变量")
+    exit()
+if not NOTION_TOKEN:
+    print("请设置 NOTION_TOKEN 环境变量")
+    exit()
+if not NOTION_DATABASE_ID:
+    print("请设置 NOTION_DATABASE_ID 环境变量")
     exit()
 
 # 将 Cookie 字符串转换为字典
@@ -24,6 +33,8 @@ def cookie_string_to_dict(cookie_string):
 
 cookies = cookie_string_to_dict(COOKIE)
 
+# 初始化 Notion 客户端
+notion = Client(auth=NOTION_TOKEN)
 
 def get_weread_data(url, params=None, cookies=None):
     """
@@ -66,6 +77,23 @@ def get_book_info(book_id, cookies):
     params = {"bookId": book_id}
     return get_weread_data(url, params=params, cookies=cookies)
 
+def create_notion_page(database_id, book_title, chapter_title, highlight_text, note_text):
+    """
+    在 Notion 数据库中创建一个页面。
+    """
+    try:
+        notion.pages.create(
+            parent={"database_id": database_id},
+            properties={
+                "书名": {"title": [{"text": {"content": book_title}}]},
+                "章节": {"rich_text": [{"text": {"content": chapter_title}}]},
+                "划线": {"rich_text": [{"text": {"content": highlight_text}}]},
+                "笔记": {"rich_text": [{"text": {"content": note_text}}]},
+            },
+        )
+        print(f"成功创建 Notion 页面: {book_title} - {chapter_title}")
+    except Exception as e:
+        print(f"创建 Notion 页面失败: {e}")
 
 if __name__ == "__main__":
     # 使用示例
@@ -79,13 +107,16 @@ if __name__ == "__main__":
             bookmarks_data = get_bookmarks(book_id, cookies)
 
             if bookmarks_data and "chapters" in bookmarks_data:
-                print(f"书名: {book_info.get('title', 'N/A')}")
+                book_title = book_info.get('title', 'N/A')
                 for chapter in bookmarks_data["chapters"]:
-                    print(f"  章节: {chapter.get('title', 'N/A')}")
+                    chapter_title = chapter.get('title', 'N/A')
                     if "highlights" in chapter:
                         for highlight in chapter["highlights"]:
-                            print(f"    划线: {highlight.get('markText', 'N/A')}")
-                            print(f"    笔记: {highlight.get('note', 'N/A')}")
+                            highlight_text = highlight.get('markText', 'N/A')
+                            note_text = highlight.get('note', 'N/A')
+
+                            # 创建 Notion 页面
+                            create_notion_page(NOTION_DATABASE_ID, book_title, chapter_title, highlight_text, note_text)
             else:
                 print(f"获取书摘失败 bookId: {book_id}")
     else:
