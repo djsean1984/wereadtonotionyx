@@ -1,6 +1,7 @@
 name: WeRead Sync to Notion
 
 on:
+  workflow_dispatch:  # 添加手动触发器
   schedule:
     - cron: '0 19 * * *'  # UTC 时间每天 19:00, 对应北京时间每天凌晨 3:00
 
@@ -22,15 +23,53 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests python-dotenv notion-client
 
-      - name: Set environment variables
-        run: |
-          echo "WEREAD_COOKIE=$WEREAD_COOKIE" >> $GITHUB_ENV
-          echo "NOTION_TOKEN=$NOTION_TOKEN" >> $GITHUB_ENV
-          echo "NOTION_DATABASE_ID=$NOTION_DATABASE_ID" >> $GITHUB_ENV
-        env:
-          WEREAD_COOKIE: ${{ secrets.WEREAD_COOKIE }}  # 从 GitHub Secrets 获取 Cookie
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}    # 从 GitHub Secrets 获取 Notion Token
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }} # 从 GitHub Secrets 获取 Notion Database ID
-
       - name: Run WeRead sync script
-        run: python sync_notes.yml  # 替换为你的脚本文件名
+        run: |
+          python sync_notes.py \
+            --weread_cookie "${{ secrets.WEREAD_COOKIE }}" \
+            --notion_token "${{ secrets.NOTION_TOKEN }}" \
+            --notion_database_id "${{ secrets.NOTION_DATABASE_ID }}"
+    ```
+
+**修改 Python 脚本以接收参数：**
+
+你需要修改你的 Python 脚本 `sync_notes.py`，使其能够接收命令行参数。可以使用 `argparse` 模块来实现。
+
+```python
+import argparse
+import requests
+import json
+import os
+from dotenv import load_dotenv
+from notion_client import Client
+
+#load_dotenv()  # 不需要从 .env 文件加载，直接从命令行参数获取
+
+def main():
+    parser = argparse.ArgumentParser(description="Sync WeRead notes to Notion.")
+    parser.add_argument("--weread_cookie", required=True, help="WeRead Cookie")
+    parser.add_argument("--notion_token", required=True, help="Notion API Token")
+    parser.add_argument("--notion_database_id", required=True, help="Notion Database ID")
+
+    args = parser.parse_args()
+
+    # 从命令行参数获取
+    COOKIE = args.weread_cookie
+    NOTION_TOKEN = args.notion_token
+    NOTION_DATABASE_ID = args.notion_database_id
+
+    # 确保 Cookie, Notion Token 和 Database ID 存在
+    if not COOKIE:
+        print("请设置 WEREAD_COOKIE 环境变量")
+        exit()
+    if not NOTION_TOKEN:
+        print("请设置 NOTION_TOKEN 环境变量")
+        exit()
+    if not NOTION_DATABASE_ID:
+        print("请设置 NOTION_DATABASE_ID 环境变量")
+        exit()
+
+    # ... 你的其他代码 ...
+
+if __name__ == "__main__":
+    main()
